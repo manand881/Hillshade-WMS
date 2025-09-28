@@ -1,0 +1,51 @@
+name: Lint with Black
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  lint:
+    name: Check code formatting with Black
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: Get Python version
+      id: py-version
+      run: |
+        # Read Python version from .python-version file
+        PY_VERSION=$(cat .python-version | xargs)
+        echo "Using Python version: $PY_VERSION"
+        echo "python-version=$PY_VERSION" >> $GITHUB_OUTPUT
+    
+    - name: Set up Python ${{ steps.py-version.outputs.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ steps.py-version.outputs.python-version }}
+        cache: 'pip'  # Enable pip caching for faster builds
+    
+    - name: Install Black
+      run: |
+        python -m pip install --upgrade pip
+        pip install black==25.9.0
+    
+    - name: Check formatting with Black
+      run: |
+        # Check which files would be reformatted
+        black --check .
+      id: black-check
+      continue-on-error: true
+    
+    - name: Fail if formatting is needed
+      if: steps.black-check.outcome == 'failure'
+      run: |
+        echo "::error::Some files need formatting with Black. Run 'black .' locally and commit the changes."
+        echo "The following files need formatting:"
+        black --check --diff . || true
+        exit 1

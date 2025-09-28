@@ -32,11 +32,6 @@ A high-performance, containerized Web Map Service (WMS) implementation for servi
 The easiest way to run the WMS server is using Docker:
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd Hillshade-WMS
-
-# Start the service
 docker-compose up -d
 ```
 
@@ -44,25 +39,19 @@ The service will be available at `http://localhost:8080/wms`
 
 ## Manual Installation
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd Hillshade-WMS
-   ```
-
-2. Create and activate a virtual environment:
+Create and activate a virtual environment:
    ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
    ```
 
-3. Install system dependencies (Ubuntu/Debian example):
+Install system dependencies (Ubuntu/Debian example):
    ```bash
    sudo apt-get update
    sudo apt-get install -y python3-dev gcc gdal-bin libgdal-dev
    ```
 
-4. Install Python dependencies:
+Install Python dependencies:
    ```bash
    pip install -r requirements.txt
    ```
@@ -77,16 +66,48 @@ Configuration is handled through environment variables in the `wms_server/settin
 
 ## Running the Server
 
-1. Start the development server:
+### Using the Start Script (Recommended)
+
+The easiest way to start the server is using the provided `start_server.sh` script:
+
+```bash
+# Make the script executable if needed
+chmod +x start_server.sh
+
+# Start the server in development mode
+./start_server.sh
+
+# Or for production mode
+./start_server.sh --production
+```
+
+### Manual Startup
+
+Alternatively, you can start the server manually:
+
+1. Development server:
    ```bash
    python app.py
    ```
-   Or use gunicorn for production:
+
+2. Production server with gunicorn:
    ```bash
+   # use this command or your preferred configuration
    gunicorn -w 4 -b 0.0.0.0:8080 app:app
    ```
 
-2. The WMS service will be available at `http://localhost:8080/wms`
+The WMS service will be available at `http://localhost:8080/wms`
+
+
+### QGIS Setup
+
+1. Go to `Layers` -> `Add Layer` -> `Add WMS/WMTS Layer`
+2. Click on `New` to create a new WMS/WMTS server
+3. Enter the URL of the WMS service - `http://localhost:8080/wms?service=WMS&version=1.3.0&request=GetCapabilities`
+4. Click on `OK` to add the WMS/WMTS server
+5. Click on `Connect` to connect to the WMS/WMTS server
+6. Select the layer `hillshade` and click on `Add` to add the layer to the map
+
 
 ## API Endpoints
 
@@ -125,39 +146,23 @@ This project uses pre-commit hooks for code quality. Install them with:
 pre-commit install
 ```
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ## Contributing
 
-We welcome contributions to the Hillshade-WMS project! Here's how you can help:
-
-1. **Fork** the repository to your own GitHub account
-2. **Clone** the project to your local machine
-3. **Create a feature branch** for your changes:
-   ```bash
-   git checkout -b feature/YourFeatureName
-   ```
-4. **Commit** your changes with a clear, descriptive message:
-   ```bash
-   git commit -m 'feat: Add new feature or fix bug'
-   ```
-5. **Push** your changes to your fork:
-   ```bash
-   git push origin feature/YourFeatureName
-   ```
-6. Open a **Pull Request** with a clear description of your changes
+Contributions to the Hillshade-WMS project are welcome!
 
 ### Development Guidelines
 - Follow the existing code style and formatting
-- Write tests for new features and bug fixes
+- Write tests for new features and bug fixes(help needed)
 - Update documentation as needed
 - Ensure all tests pass before submitting a PR
 
-## Development
+### Development
 
 - The application is set up with debug mode enabled by default.
 - Any changes to Python files will automatically reload the server.
 - The service includes built-in logging for monitoring and debugging.
 - For production deployment, use the provided Dockerfile and docker-compose.yml for containerized deployment.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
