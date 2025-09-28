@@ -1,8 +1,16 @@
 """
 WMS (Web Map Service) Blueprint
 
-This module implements the OGC Web Map Service (WMS) standard endpoints.
+This module implements the OGC Web Map Service (WMS) 1.3.0 standard endpoints.
 It provides capabilities for serving map images and metadata.
+
+The service supports the following WMS operations:
+- GetCapabilities: Returns service metadata in XML format
+- GetMap: Returns a map image in PNG format
+- GetFeatureInfo: Returns feature information (stub implementation)
+
+The service is designed to work with single-band raster data and supports
+both regular map visualization and hillshade rendering.
 
 Routes:
     GET /wms - Main WMS service endpoint
@@ -14,8 +22,9 @@ Routes:
 import xml.etree.ElementTree as ET
 from os import remove
 from os.path import join
+from typing import Tuple, Union
 
-from flask import Blueprint, jsonify, make_response, request, send_file
+from flask import Blueprint, Response, jsonify, make_response, request, send_file
 
 from utils.logging import logger, request_logger_decorator
 from utils.raster import (
@@ -34,9 +43,15 @@ logger.info(f"WMS_RASTER_PATH: {Config.WMS_RASTER_PATH}")
 logger.info(f"RASTER_BLOCK_SIZE: {Config.RASTER_BLOCK_SIZE}")
 
 
-def fetch_capabilities(error=False):
+def fetch_capabilities(error: bool = False) -> str:
     """
     Fetch WMS capabilities from the data directory.
+
+    Args:
+        error: If True, loads the error capabilities template. Defaults to False.
+
+    Returns:
+        str: The contents of the capabilities XML file.
     """
     capabilities_path = join(Config.DATA_DIR, "capabilities.xml")
     if error:
@@ -45,9 +60,19 @@ def fetch_capabilities(error=False):
         return f.read()
 
 
-def _get_capabilities_xml():
+def _get_capabilities_xml() -> str:
     """
-    Generate WMS GetCapabilities XML response by reading from XML file and updating dynamic values.
+    Generate WMS GetCapabilities XML response.
+
+    Reads the base capabilities XML file and updates it with dynamic values
+    such as the current server URL and raster extent.
+
+    Returns:
+        str: Formatted XML string containing the WMS capabilities.
+
+    Note:
+        Updates the Config.WMS_CAPABILITIES with the generated XML.
+        Falls back to error template if generation fails.
     """
     try:
         # Read the capabilities XML file
@@ -121,17 +146,34 @@ def _get_capabilities_xml():
 
 @wms_bp.route("", methods=["GET"])
 @request_logger_decorator
-def wms_service():
+def wms_service() -> Union[Response, Tuple[Response, int]]:
     """
-    Main WMS service endpoint.
+    Main WMS service endpoint that handles all WMS requests.
 
     Query Parameters:
-        request: The WMS request type (GetCapabilities, GetMap, GetFeatureInfo)
-        service: Must be 'WMS'
+        request: The WMS request type (case-insensitive)
+                - GetCapabilities: Returns service metadata
+                - GetMap: Returns a map image
+                - GetFeatureInfo: Returns feature information
+        service: Must be 'WMS' (case-insensitive)
         version: WMS version (e.g., '1.3.0')
+        BBOX: Bounding box for GetMap requests (format: "minx,miny,maxx,maxy")
+        WIDTH: Width of the output image in pixels
+        HEIGHT: Height of the output image in pixels
+        LAYERS: Comma-separated list of layers to render
+        FORMAT: Output format (e.g., 'image/png' for GetMap)
 
     Returns:
-        Response with either XML capabilities or a map image
+        Response:
+            - For GetCapabilities: XML document
+            - For GetMap: PNG image
+            - For GetFeatureInfo: JSON response
+            - Error responses in JSON format with appropriate status codes
+
+    Raises:
+        HTTP 400: For invalid or unsupported requests
+        HTTP 404: If the requested resource is not found
+        HTTP 500: For internal server errors
     """
     request_type = request.args.get("request", "").lower()
 

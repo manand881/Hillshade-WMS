@@ -13,16 +13,30 @@ from wms_server.settings import Config
 
 def get_raster_crs(raster_path: str = Config.WMS_RASTER_PATH) -> CRS:
     """
-    Get CRS of a raster file.
+    Get the coordinate reference system (CRS) of a raster file.
+
+    Args:
+        raster_path: Path to the raster file. Defaults to Config.WMS_RASTER_PATH.
+
+    Returns:
+        rasterio.crs.CRS: The coordinate reference system of the raster.
     """
     with rasterio.open(raster_path) as src:
         crs = src.crs
     return crs
 
 
-def get_raster_extent(raster_path: str = Config.WMS_RASTER_PATH) -> tuple:
+def get_raster_extent(
+    raster_path: str = Config.WMS_RASTER_PATH,
+) -> tuple[float, float, float, float]:
     """
-    Get extent of a raster file.
+    Get the geographic extent of a raster file.
+
+    Args:
+        raster_path: Path to the raster file. Defaults to Config.WMS_RASTER_PATH.
+
+    Returns:
+        tuple: (minx, miny, maxx, maxy) bounding box in the raster's native CRS.
     """
     with rasterio.open(raster_path) as src:
         extent = src.bounds
@@ -31,7 +45,7 @@ def get_raster_extent(raster_path: str = Config.WMS_RASTER_PATH) -> tuple:
 
 def get_raster_extent_wgs84(
     raster_path: str = Config.WMS_RASTER_PATH, target_crs: str = "EPSG:4326"
-) -> tuple:
+) -> tuple[float, float, float, float]:
     """
     Get extent of a raster file in WGS84.
 
@@ -51,7 +65,8 @@ def get_raster_extent_wgs84(
 
 @log_execution_time
 def get_raster_stats(raster_path: str = Config.WMS_RASTER_PATH) -> None:
-    """Get min/max statistics from a single-band raster, handling nodata values.
+    """
+    Get min/max statistics from a single-band raster, handling nodata values.
 
     Processes raster in blocks for memory efficiency. Only considers non-nodata values.
 
@@ -59,8 +74,7 @@ def get_raster_stats(raster_path: str = Config.WMS_RASTER_PATH) -> None:
         raster_path: Path to the single-band raster file.
 
     Returns:
-        dict: {'nodata': value, 'min': min_value, 'max': max_value}
-        Returns None for min/max if no valid data exists.
+        None
 
     Raises:
         FileNotFoundError: If raster file doesn't exist.
@@ -86,6 +100,7 @@ def get_raster_stats(raster_path: str = Config.WMS_RASTER_PATH) -> None:
                 raise ValueError("Input raster is not a valid COG.")
 
             Config.RASTER_BLOCK_SIZE = src.profile.get("blockxsize")
+            logger.info(f"RASTER_BLOCK_SIZE: {Config.RASTER_BLOCK_SIZE}")
 
             # Get nodata value
             nodata = src.nodatavals[0]
@@ -93,6 +108,11 @@ def get_raster_stats(raster_path: str = Config.WMS_RASTER_PATH) -> None:
             # Initialize min/max
             min_value = None
             max_value = None
+
+            pixel_size_x = round(src.transform.a, 5)
+            pixel_size_y = round(src.transform.e, 5)
+
+            logger.info(f"Pixel size x: {pixel_size_x}, Pixel size y: {pixel_size_y}")
 
             # Iterate over blocks
             for _, window in src.block_windows(1):  # Band 1
@@ -131,20 +151,34 @@ def get_raster_stats(raster_path: str = Config.WMS_RASTER_PATH) -> None:
         raise ValueError(f"Error processing raster: {str(e)}")
 
 
-def raster_to_png(bbox: str, width: int, height: int) -> str:
+def raster_to_png(
+    bbox: str, width: int, height: int, calculate_hillshade: bool = False
+) -> str:
     """
-    Clip single-band raster to bbox and convert to PNG. Returns path to the PNG file.
+    Clip single-band raster to bbox and convert to PNG.
+
+    Processes the raster to generate either a direct visualization or a hillshade
+    effect based on the input parameters.
 
     Args:
-        bbox (str): Bounding box in format "minx,miny,maxx,maxy" in the raster's CRS.
-                    If empty, uses the full extent of the raster.
+        bbox: Bounding box in format "minx,miny,maxx,maxy" in the raster's CRS.
+              If empty, uses the full extent of the raster.
+        width: Width of the output image in pixels.
+        height: Height of the output image in pixels.
+        calculate_hillshade: If True, generates a hillshade visualization using
+                           the elevation data. Defaults to False.
 
     Returns:
-        str: Path to the generated PNG file
+        str: Path to the generated PNG file with transparency for nodata values.
 
     Raises:
-        ValueError: If the raster is not single-band or if bbox is invalid
-        IOError: If there's an error reading the raster or saving the PNG
+        ValueError: If the raster is not single-band or if bbox is invalid.
+        IOError: If there's an error reading the raster or saving the PNG.
+
+    Note:
+        The function creates a temporary file that is automatically removed after
+        the image is sent to the client. The image uses a grayscale color map
+        with transparency for nodata values.
     """
     raster_path = Config.WMS_RASTER_PATH
     png_path = get_temp_file("png")
@@ -153,6 +187,10 @@ def raster_to_png(bbox: str, width: int, height: int) -> str:
     nodata = Config.RASTER_NODATA
     width = int(width)
     height = int(height)
+
+    azimuth = 315.0  # Light source direction (degrees, 315 = NW)
+    altitude = 45.0  # Light source angle above horizon (degrees)
+    z_factor = 1.0  # Vertical exaggeration factor
 
     try:
         minx, miny, maxx, maxy = map(float, bbox.split(","))
@@ -174,12 +212,48 @@ def raster_to_png(bbox: str, width: int, height: int) -> str:
         data = data.astype(float)
         mask_nodata = data == nodata  # True where nodata
         data[data == nodata] = global_min
+        data_norm = None
 
-        # Normalize data to 0–255 ignoring nan using global min and max
-        data_norm = (data - global_min) / (global_max - global_min) * 255
+        if calculate_hillshade:
+            # Calculate pixel size for gradient computation
+            pixel_size_x = (maxx - minx) / width
+            pixel_size_y = (maxy - miny) / height
 
-        # Reset nodata positions to NaN before casting
-        data_norm = np.clip(data_norm, 0, 255).astype(np.uint8)
+            # Compute gradients using Sobel filters
+            dx = np.gradient(data, pixel_size_x, axis=1)
+            dy = np.gradient(data, pixel_size_y, axis=0)
+
+            # Calculate slope and aspect
+            slope = np.arctan(np.sqrt(dx**2 + dy**2) * z_factor)
+            aspect = np.arctan2(-dx, dy)
+
+            # Convert angles to radians
+            azimuth_rad = np.deg2rad(azimuth)
+            altitude_rad = np.deg2rad(altitude)
+
+            hillshade = np.cos(altitude_rad) * np.cos(slope) + np.sin(
+                altitude_rad
+            ) * np.sin(slope) * np.cos(azimuth_rad - aspect)
+
+            # convert to 0,255 range
+            hillshade = (
+                (hillshade - np.min(hillshade))
+                / (np.max(hillshade) - np.min(hillshade))
+                * 255
+            )
+
+            # Clip to valid range and apply nodata mask
+            data_norm = np.clip(hillshade, 0, 255).astype(np.uint8)
+
+            del hillshade
+
+        else:
+
+            # Normalize data to 0–255 ignoring nan using global min and max
+            data_norm = (data - global_min) / (global_max - global_min) * 255
+
+            # Reset nodata positions to NaN before casting
+            data_norm = np.clip(data_norm, 0, 255).astype(np.uint8)
 
         # Create RGBA image with transparency for nodata pixels
         alpha = np.where(mask_nodata, 0, 255).astype(np.uint8)
