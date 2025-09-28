@@ -101,8 +101,8 @@ def _get_capabilities_xml() -> str:
             elem.text = raster_crs
 
         # Find and update the BoundingBox element
-        bbox_elem = root.find(".//BoundingBox")
-        if bbox_elem is not None:
+        bbox_elems = root.findall(".//BoundingBox")
+        for bbox_elem in bbox_elems:
             bbox_elem.set("minx", str(original_bbox[0]))
             bbox_elem.set("miny", str(original_bbox[1]))
             bbox_elem.set("maxx", str(original_bbox[2]))
@@ -193,7 +193,8 @@ def wms_service() -> Union[Response, Tuple[Response, int]]:
         bbox = request.args.get("BBOX", "")
         width = request.args.get("WIDTH", "")
         height = request.args.get("HEIGHT", "")
-        png_path = raster_to_png(bbox, width, height)
+        calculate_hillshade = request.args.get("LAYERS", "").lower() == "hillshade"
+        png_path = raster_to_png(bbox, width, height, calculate_hillshade)
 
         try:
             return send_file(png_path, mimetype="image/png", as_attachment=False)
