@@ -1,0 +1,328 @@
+{
+  "info": {
+    "name": "Hillshade WMS Service",
+    "description": "Postman collection for the Hillshade Web Map Service (WMS) API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "WMS",
+      "description": "OGC Web Map Service endpoints",
+      "item": [
+        {
+          "name": "GetCapabilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wms?service=WMS&version=1.3.0&request=GetCapabilities",
+              "host": ["{{base_url}}"],
+              "path": ["wms"],
+              "query": [
+                {
+                  "key": "service",
+                  "value": "WMS"
+                },
+                {
+                  "key": "version",
+                  "value": "1.3.0"
+                },
+                {
+                  "key": "request",
+                  "value": "GetCapabilities"
+                }
+              ]
+            },
+            "description": "Returns the service metadata in XML format, including available layers, supported CRS, and operations."
+          },
+          "response": []
+        },
+        {
+          "name": "GetMap",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wms?service=WMS&version=1.3.0&request=GetMap&layers=elevation&bbox=-180,-90,180,90&width=800&height=400&srs=EPSG:4326&format=image/png",
+              "host": ["{{base_url}}"],
+              "path": ["wms"],
+              "query": [
+                {
+                  "key": "service",
+                  "value": "WMS"
+                },
+                {
+                  "key": "version",
+                  "value": "1.3.0"
+                },
+                {
+                  "key": "request",
+                  "value": "GetMap"
+                },
+                {
+                  "key": "layers",
+                  "value": "elevation",
+                  "description": "Comma-separated list of one or more map layers"
+                },
+                {
+                  "key": "bbox",
+                  "value": "-180,-90,180,90",
+                  "description": "Bounding box coordinates (minx,miny,maxx,maxy) in SRS units"
+                },
+                {
+                  "key": "width",
+                  "value": "800",
+                  "description": "Width of the map in pixels"
+                },
+                {
+                  "key": "height",
+                  "value": "400",
+                  "description": "Height of the map in pixels"
+                },
+                {
+                  "key": "srs",
+                  "value": "EPSG:4326",
+                  "description": "Spatial Reference System (e.g., EPSG:4326 for WGS84)"
+                },
+                {
+                  "key": "format",
+                  "value": "image/png",
+                  "description": "Output format (e.g., image/png, image/jpeg)"
+                }
+              ]
+            },
+            "description": "Returns a map image for the specified parameters."
+          },
+          "response": []
+        },
+        {
+          "name": "GetFeatureInfo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wms?service=WMS&version=1.3.0&request=GetFeatureInfo&layers=elevation&query_layers=elevation&bbox=-180,-90,180,90&width=800&height=400&srs=EPSG:4326&x=400&y=200&info_format=application/json",
+              "host": ["{{base_url}}"],
+              "path": ["wms"],
+              "query": [
+                {
+                  "key": "service",
+                  "value": "WMS"
+                },
+                {
+                  "key": "version",
+                  "value": "1.3.0"
+                },
+                {
+                  "key": "request",
+                  "value": "GetFeatureInfo"
+                },
+                {
+                  "key": "layers",
+                  "value": "elevation",
+                  "description": "Comma-separated list of one or more map layers"
+                },
+                {
+                  "key": "query_layers",
+                  "value": "elevation",
+                  "description": "Comma-separated list of layers to query"
+                },
+                {
+                  "key": "bbox",
+                  "value": "-180,-90,180,90",
+                  "description": "Bounding box coordinates (minx,miny,maxx,maxy) in SRS units"
+                },
+                {
+                  "key": "width",
+                  "value": "800",
+                  "description": "Width of the map in pixels"
+                },
+                {
+                  "key": "height",
+                  "value": "400",
+                  "description": "Height of the map in pixels"
+                },
+                {
+                  "key": "srs",
+                  "value": "EPSG:4326",
+                  "description": "Spatial Reference System"
+                },
+                {
+                  "key": "x",
+                  "value": "400",
+                  "description": "X coordinate of the query point in pixels"
+                },
+                {
+                  "key": "y",
+                  "value": "200",
+                  "description": "Y coordinate of the query point in pixels"
+                },
+                {
+                  "key": "info_format",
+                  "value": "application/json",
+                  "description": "Format of the feature information (e.g., application/json, text/html)"
+                }
+              ]
+            },
+            "description": "Returns information about features at a specific location on the map."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Error Handling",
+      "description": "Tests for error conditions and error handling",
+      "item": [
+        {
+          "name": "Invalid Endpoint - 404 Not Found",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/nonexistent-endpoint",
+              "host": ["{{base_url}}"],
+              "path": ["nonexistent-endpoint"]
+            },
+            "description": "Tests that a request to a non-existent endpoint returns a 404 Not Found error with the expected JSON structure."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function() {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has error structure\", function() {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('error');",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "    pm.expect(jsonData.error).to.equal('Not Found');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid WMS Request - 400 Bad Request",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wms?invalid=request",
+              "host": ["{{base_url}}"],
+              "path": ["wms"],
+              "query": [
+                {
+                  "key": "invalid",
+                  "value": "request"
+                }
+              ]
+            },
+            "description": "Tests that an invalid WMS request returns a 400 Bad Request error with the expected JSON structure."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has error structure\", function() {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('error');",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "    pm.expect(jsonData.error).to.equal('Bad Request');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "API Status",
+      "description": "Endpoints for checking server status and health",
+      "item": [
+        {
+          "name": "Get Server Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "status"]
+            },
+            "description": "Returns the current server status, version, and other metadata."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has required fields\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status', 'running');",
+                  "    pm.expect(jsonData).to.have.property('service');",
+                  "    pm.expect(jsonData).to.have.property('version');",
+                  "    pm.expect(jsonData).to.have.property('timestamp');",
+                  "    pm.expect(jsonData).to.have.property('timezone');",
+                  "    pm.expect(jsonData).to.have.property('uptime_seconds').that.is.a('number');",
+                  "    pm.expect(jsonData).to.have.property('cpu_count').that.is.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "noauth"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": ["// You can add pre-request scripts here"]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// You can add test scripts here",
+          "pm.test(\"Status code is 200\", function() {",
+          "    pm.response.to.have.status(200);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string",
+      "description": "Base URL of the WMS service"
+    }
+  ]
+}

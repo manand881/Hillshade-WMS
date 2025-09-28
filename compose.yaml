@@ -1,7 +1,6 @@
 services:
   app:
     container_name: hillshade-wms
-    platform: linux/amd64
     build:
       context: .
     env_file:
@@ -11,3 +10,9 @@ services:
     volumes:
       - .:/app
       - ./scratch:/tmp
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
