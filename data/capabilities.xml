@@ -66,5 +66,16 @@
         <BoundingBox CRS="EPSG:4326" minx="10.0" miny="20.0" maxx="30.0" maxy="40.0"/>
       </Layer>
     </Layer>
+    <Layer>
+      <Title>Hillshade</Title>
+      <CRS>EPSG:4326</CRS>
+      <Layer queryable="1" opaque="0" noSubsets="0" cascaded="0">
+        <Name>hillshade</Name>
+        <Title>Hillshade</Title>
+        <Abstract>Single-band raster hillshade</Abstract>
+        <CRS>EPSG:4326</CRS>
+        <BoundingBox CRS="EPSG:4326" minx="10.0" miny="20.0" maxx="30.0" maxy="40.0"/>
+      </Layer>
+    </Layer>
   </Capability>
 </WMS_Capabilities>
