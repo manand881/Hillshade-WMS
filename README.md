@@ -2,11 +2,15 @@
 
 A high-performance, containerized Web Map Service (WMS) implementation for serving hillshade raster data. This service implements the OGC WMS 1.3.0 standard, providing capabilities for serving map images and metadata with support for efficient raster data handling.
 
+## Screenshot
+
+![Hillshade WMS Screenshot](docs/data/Screenshot.png)
+*Figure: Example output of the Hillshade WMS service*
+
 ## Features
 
 - **OGC WMS 1.3.0 Compliance**: Full support for standard WMS operations including GetCapabilities, GetMap, and GetFeatureInfo
 - **On-the-Fly Tile Generation**: Generates map tiles dynamically for any requested extent and resolution without requiring pre-rendered tiles or disk caching
-- **Efficient Raster Processing**: Optimized for handling large raster datasets with block-based processing
 - **Docker Support**: Easy deployment using Docker
 - **Cloud-Optimized GeoTIFF (COG) Support**: Built-in support for Cloud Optimized GeoTIFF format
 - **Dynamic CRS Handling**: Automatic coordinate reference system detection and transformation
@@ -17,7 +21,6 @@ A high-performance, containerized Web Map Service (WMS) implementation for servi
 - The input raster is a Cloud Optimized GeoTIFF (COG)
 - The input raster is available at the specified path and not in an s3/minio bucket
 - It is acceptable to generate the hillshade to the scope of the current window
-- The WMS client's CRS is set to the raster's CRS
 - A colour ramp is not required for the generated tiles of either the hillshade or the elevation
 
 ## Prerequisites
